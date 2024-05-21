@@ -3,9 +3,11 @@ module mycpu_top (
     input  wire        resetn,
     // inst sram interface
     output wire        inst_sram_we,
+    output wire        inst_sram_re,
     output wire [31:0] inst_sram_addr,
     output wire [31:0] inst_sram_wdata,
     input  wire [31:0] inst_sram_rdata,
+    input  wire        inst_sram_miss,
     // data sram interface
     output wire        data_sram_we,
     output wire [31:0] data_sram_addr,
@@ -17,6 +19,7 @@ module mycpu_top (
     output wire [ 4:0] debug_wb_rf_wnum,
     output wire [31:0] debug_wb_rf_wdata
 );
+  //加入cache需要把if段分成if1和if2两部分，
 
   wire rf_rd0_fe;
   wire rf_rd1_fe;
@@ -30,10 +33,12 @@ module mycpu_top (
   always @(posedge clk) reset <= ~resetn;
 
   reg  valid;
+  wire flush_if1if2;
   wire flush_ifid;
   wire flush_idex;
   wire stall_pc;
   wire stall_ifid;
+  wire stall_if1if2;
   always @(posedge clk) begin
     if (reset) begin
       valid <= 1'b0;
@@ -56,6 +61,7 @@ module mycpu_top (
   wire [31:0] final_result_mem;
   reg  [31:0] final_result_wb;
   reg  [31:0] pc;
+  reg  [31:0] pcf2_reg;
   reg  [31:0] pcd_reg;
   reg  [31:0] pce_reg;
   reg  [31:0] pcm_reg;
@@ -185,6 +191,7 @@ module mycpu_top (
   //end 
 
   wire        need_ui5;
+  wire        need_ui12;
   wire        need_si12;
   wire        need_si16;
   wire        need_si20;
@@ -212,6 +219,8 @@ module mycpu_top (
   reg  [ 4:0] rf_ra1_ex;  //registers between different states
   always @(posedge clk) begin
     if (reset || !valid) begin
+      //IF1-IF2
+      pcf2_reg <= 0;
       //IF-ID
       pcd_reg <= 0;
       ir_reg <= 0;  //nop here
@@ -285,8 +294,10 @@ module mycpu_top (
       rdw_reg <= 0;
       irw_reg <= 0;
     end else begin
+      //IF1-IF2
+      pcf2_reg <= flush_if1if2 ? 0 : stall_if1if2 ? pcf2_reg : pc;
       //IF-ID
-      pcd_reg <= flush_ifid ? 0 : stall_ifid ? pcd_reg : pc;
+      pcd_reg <= flush_ifid ? 0 : stall_ifid ? pcd_reg : pcf2_reg;
       ir_reg <= flush_ifid ? 0 : stall_ifid ? ir_reg : inst;
       //ID-EX
       rf_ra0_ex <= flush_idex ? 0 : rf_raddr1;
@@ -375,8 +386,13 @@ module mycpu_top (
   end
 
   assign inst_sram_we    = 1'b0;
+  assign inst_sram_re    = 1'b1;
   assign inst_sram_addr  = pc;
   assign inst_sram_wdata = 32'b0;
+
+
+  //IF2 Section------------------------------------------------
+  
   assign inst            = inst_sram_rdata;
 
   //ID Section------------------------------------------------
@@ -635,7 +651,9 @@ module mycpu_top (
       .stall_pc(stall_pc),
       .stall_if_id(stall_ifid),
       .flush_if_id(flush_ifid),
-      .flush_id_ex(flush_idex)
+      .flush_id_ex(flush_idex),
+      .flush_if1_if2(flush_if1if2),
+      .stall_if1_if2(stall_if1if2)
   );
 endmodule
 //TODO: 靠?

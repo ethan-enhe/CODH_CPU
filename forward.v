@@ -14,7 +14,6 @@ module forward (
     output reg [31:0] rf_rd1_fd
 );
   always @(*) begin
-
     rf_rd0_fe = 0;
     rf_rd1_fe = 0;
     rf_rd0_fd = 0;
