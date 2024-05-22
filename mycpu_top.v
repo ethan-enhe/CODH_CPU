@@ -39,6 +39,7 @@ module mycpu_top (
   wire stall_pc;
   wire stall_ifid;
   wire stall_if1if2;
+  wire stall_all;
   always @(posedge clk) begin
     if (reset) begin
       valid <= 1'b0;
@@ -293,7 +294,7 @@ module mycpu_top (
       yw_reg <= 0;
       rdw_reg <= 0;
       irw_reg <= 0;
-    end else begin
+    end else if(!stall_all) begin
       //IF1-IF2
       pcf2_reg <= flush_if1if2 ? 0 : stall_if1if2 ? pcf2_reg : pc;
       //IF-ID
@@ -381,7 +382,7 @@ module mycpu_top (
     if (reset) begin
       pc <= 32'h1bfffffc;  //trick: to make nextpc be 0x1c000000 during reset 
     end else begin
-      pc <= stall_pc ? pc : nextpc;
+      pc <= (stall_pc || stall_all) ? pc : nextpc;
     end
   end
 
@@ -547,6 +548,9 @@ module mycpu_top (
   assign rj_value = rf_rd0_fe ? rf_rd0_fd : a_reg;  //¿¿forward
   assign rkd_value = rf_rd1_fe ? rf_rd1_fd : b_reg;
 
+  wire rj_eq_rd;
+  wire rj_lt_rd;
+  wire rj_ltu_rd;
   assign rj_eq_rd = (rj_value == rkd_value);
   assign rj_lt_rd = ($signed(rj_value) < $signed(rkd_value));
   assign rj_ltu_rd = ($unsigned(rj_value) < $unsigned(rkd_value));
@@ -653,7 +657,8 @@ module mycpu_top (
       .flush_if_id(flush_ifid),
       .flush_id_ex(flush_idex),
       .flush_if1_if2(flush_if1if2),
-      .stall_if1_if2(stall_if1if2)
+      .stall_if1_if2(stall_if1if2),
+      .stall_all(stall_all)
   );
 endmodule
 //TODO: ¿¿?

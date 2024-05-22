@@ -1,21 +1,20 @@
 module mem#(
-    parameter INDEX_WIDTH       = 3,    // Cache索引位宽 2^3=8�?
-    parameter LINE_OFFSET_WIDTH = 2,    // 行偏移位宽，决定了一行的宽度 2^2=4�?
+    parameter INDEX_WIDTH       = 16,    // Cache索引位宽 2^3=8�?
+    parameter LINE_OFFSET_WIDTH = 0,    // 行偏移位宽，决定了一行的宽度 2^2=4�?
     parameter SPACE_OFFSET      = 2,    // �?个地�?空间�?1个字节，因此�?个字�?�?4个地�?空间，由于假设为整字读取，处理地�?的时候可以默认后两位�?0
-    parameter MEM_ADDR_WIDTH    = 10,   // 为了�?化，这里假设内存地址宽度�?10位（CPU请求地址仍然�?32位，只不过我们这里简化处理，截断了高位） 
-    parameter WAY_NUM           = 1     // Cache N路组相联(N=1的时候是直接映射)
+    parameter MEM_ADDR_WIDTH    = 25   // 为了�?化，这里假设内存地址宽度�?10位（CPU请求地址仍然�?32位，只不过我们这里简化处理，截断了高位） 
 )(
     input  clk,
     input  rstn,
     input  mem_r,
     input  mem_w,
     input  [31:0] mem_addr,
-    input  [127:0] mem_w_data,  // 内存写数�? �?次写�?�?
-    output [127:0] mem_r_data,  // 内存读数�? �?次读�?�?
+    input  [31:0] mem_w_data,  // 内存写数�? �?次写�?�?
+    output [31:0] mem_r_data,  // 内存读数�? �?次读�?�?
     output reg                         mem_ready  // 内存就绪信号
 );
     localparam LINE_WIDTH = 32 << LINE_OFFSET_WIDTH;
-    localparam cnt_max = 5; // ! 更改这个值可以模拟不同的延迟，为了仿真方便可以设置成5
+    localparam cnt_max = 4; // ! 更改这个值可以模拟不同的延迟，为了仿真方便可以设置成5
 
     wire [MEM_ADDR_WIDTH - 1:0] addr;
     assign addr = mem_addr[MEM_ADDR_WIDTH+LINE_OFFSET_WIDTH + SPACE_OFFSET:LINE_OFFSET_WIDTH + SPACE_OFFSET];
@@ -64,8 +63,8 @@ module mem#(
       .ena(1'b1),      // input wire ena
       .wea(mem_w && (cnt == cnt_max)),      // input wire [0 : 0] wea
       .addra(addr),  // input wire [7 : 0] addra
-      .dina(mem_wdata),    // input wire [127 : 0] dina
-      .douta(mem_data)  // output wire [127 : 0] douta
+      .dina(mem_wdata),    // input wire [31 : 0] dina
+      .douta(mem_data)  // output wire [31 : 0] douta
     );
 
 endmodule
