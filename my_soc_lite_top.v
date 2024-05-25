@@ -116,10 +116,12 @@ endgenerate
 
 //cpu inst cache
 wire        cpu_inst_we;
+wire        cpu_inst_re;
 wire [31:0] cpu_inst_addr;
 wire [31:0] cpu_inst_wdata;
 wire [31:0] cpu_inst_rdata;
 wire cpu_inst_miss;
+wire cpu_inst_rstn;
 
 //inst cache - inst mem
 wire mem_r;
@@ -132,7 +134,6 @@ wire mem_ready;
 
 //cpu data sram
 wire        cpu_data_we;
-wire        cpu_data_re;
 wire [31:0] cpu_data_addr;
 wire [31:0] cpu_data_wdata;
 wire [31:0] cpu_data_rdata;
@@ -157,11 +158,12 @@ mycpu_top cpu(
     .resetn           (cpu_resetn    ),  //low active
 
     .inst_sram_we     (cpu_inst_we   ),
-    .inst_sram_re     (cpu_data_re   ),//here
+    .inst_sram_re     (cpu_inst_re   ),//here
     .inst_sram_addr   (cpu_inst_addr ),
     .inst_sram_wdata  (cpu_inst_wdata),
     .inst_sram_rdata  (cpu_inst_rdata),
     .inst_sram_miss   (cpu_inst_miss ),
+    .inst_sram_rstn   (cpu_inst_rstn ),
    
     .data_sram_we     (cpu_data_we   ),
     .data_sram_addr   (cpu_data_addr ),
@@ -187,8 +189,8 @@ mycpu_top cpu(
 
 cache inst_cache(
     .clk             ( cpu_clk         ), // i, 1
-    .rstn            ( cpu_resetn      ), // i, 1
-    .r_req           ( cpu_inst_we     ), // i, 1
+    .rstn            ( cpu_resetn && cpu_inst_rstn), // i, 1
+    .r_req           ( cpu_inst_re     ), // i, 1
     .w_req           ( cpu_inst_we     ), // i, 1
     .addr            ( cpu_inst_addr   ), // i, 32
     .w_data           ( cpu_inst_wdata  ), // i, 32
@@ -243,7 +245,7 @@ data_ram data_ram
 (
     .clk   (cpu_clk            ),   
     .we    (data_sram_we & data_sram_en),   
-    .a     (data_sram_addr[17:2]),   
+    .a     (data_sram_addr[14:2]),   
     .d     (data_sram_wdata    ),   
     .spo   (data_sram_rdata    )   
 );

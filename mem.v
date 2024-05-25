@@ -1,8 +1,8 @@
 module mem#(
-    parameter INDEX_WIDTH       = 16,    // Cache索引位宽 2^3=8�?
+    parameter INDEX_WIDTH       = 25,    // Cache索引位宽 2^3=8�?
     parameter LINE_OFFSET_WIDTH = 0,    // 行偏移位宽，决定了一行的宽度 2^2=4�?
     parameter SPACE_OFFSET      = 2,    // �?个地�?空间�?1个字节，因此�?个字�?�?4个地�?空间，由于假设为整字读取，处理地�?的时候可以默认后两位�?0
-    parameter MEM_ADDR_WIDTH    = 25   // 为了�?化，这里假设内存地址宽度�?10位（CPU请求地址仍然�?32位，只不过我们这里简化处理，截断了高位） 
+    parameter MEM_ADDR_WIDTH    = 14   // 为了�?化，这里假设内存地址宽度�?10位（CPU请求地址仍然�?32位，只不过我们这里简化处理，截断了高位） 
 )(
     input  clk,
     input  rstn,

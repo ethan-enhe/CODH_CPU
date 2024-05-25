@@ -5,7 +5,7 @@
 - LRU
 */
 module cache #(
-    parameter INDEX_WIDTH       = 13,    // Cache索引位宽 8k
+    parameter INDEX_WIDTH       = 12,    // Cache索引位宽 8k
     parameter LINE_OFFSET_WIDTH = 0,    // 行偏移位宽，决定了一行的宽度 1word
     parameter SPACE_OFFSET      = 2    // �?个地�?空间�?1个字节，因此�?个字�?�?4个地�?空间，由于假设为整字读取，处理地�?的时候可以默认后两位�?0
 )(
@@ -67,7 +67,7 @@ module cache #(
     wire dirty;  // Cache脏位.
     reg  w_valid;  // Cache写有效位
     reg  w_dirty;  // Cache写脏�?
-    reg  w_tag;  // Cache写标记位
+    //reg  w_tag;  // Cache写标记位
     wire hit;    // Cache命中
     wire hit_way;  // Cache命中的way
     reg hit_way_buf;

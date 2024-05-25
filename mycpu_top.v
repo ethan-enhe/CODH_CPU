@@ -8,6 +8,7 @@ module mycpu_top (
     output wire [31:0] inst_sram_wdata,
     input  wire [31:0] inst_sram_rdata,
     input  wire        inst_sram_miss,
+    output wire        inst_sram_rstn,
     // data sram interface
     output wire        data_sram_we,
     output wire [31:0] data_sram_addr,
@@ -25,8 +26,8 @@ module mycpu_top (
   wire rf_rd1_fe;
   wire [31:0] rf_rd0_fd;
   wire [31:0] rf_rd1_fd;
-  reg [31:0] maw_reg;
-  reg [3:0] mwew_reg;
+  //reg [31:0] maw_reg;
+  //reg [3:0] mwew_reg;
   reg [31:0] mdw_reg;
   reg [31:0] mdr_reg;
   reg reset;
@@ -38,6 +39,7 @@ module mycpu_top (
   wire flush_idex;
   wire stall_pc;
   wire stall_ifid;
+  reg  stall_ifid_buf; 
   wire stall_if1if2;
   wire stall_all;
   always @(posedge clk) begin
@@ -53,10 +55,11 @@ module mycpu_top (
   wire        br_taken;
   wire [31:0] br_target;
   wire [31:0] inst;
+  reg  [31:0] ir_reg1;
   reg  [31:0] ir_reg;
-  reg  [31:0] ire_reg;
-  reg  [31:0] irm_reg;
-  reg  [31:0] irw_reg;
+  // reg  [31:0] ire_reg;
+  // reg  [31:0] irm_reg;
+  // reg  [31:0] irw_reg;
 
 
   wire [31:0] final_result_mem;
@@ -70,7 +73,7 @@ module mycpu_top (
 
   wire [11:0] alu_op;
   reg  [11:0] alu_op_reg;
-  wire        load_op;
+  //wire        load_op;
   wire        src1_is_pc;
   wire        src2_is_imm;
   reg         src1_is_pc_reg;
@@ -105,9 +108,9 @@ module mycpu_top (
   wire [ 1:0] op_21_20;
   wire [ 4:0] op_19_15;
   wire [ 4:0] rd;
-  reg  [ 4:0] rd_reg;
-  reg  [ 4:0] rdm_reg;
-  reg  [ 4:0] rdw_reg;
+  // reg  [ 4:0] rd_reg;
+  // reg  [ 4:0] rdm_reg;
+  // reg  [ 4:0] rdw_reg;
   wire [ 4:0] rj;
   wire [ 4:0] rk;
   wire [ 4:0] i5;
@@ -224,7 +227,9 @@ module mycpu_top (
       pcf2_reg <= 0;
       //IF-ID
       pcd_reg <= 0;
+      stall_ifid_buf <= 0;
       ir_reg <= 0;  //nop here
+      ir_reg1 <= 0;
       //ID-EX
       rf_ra0_ex <= 0;
       rf_ra1_ex <= 0;
@@ -232,8 +237,8 @@ module mycpu_top (
       a_reg <= 0;
       b_reg <= 0;
       imm_reg <= 0;
-      rd_reg <= 0;
-      ire_reg <= 0;
+      // rd_reg <= 0;
+      // ire_reg <= 0;
       alu_op_reg <= 0;
       src1_is_pc_reg <= 0;
       src2_is_imm_reg <= 0;
@@ -272,8 +277,8 @@ module mycpu_top (
       res_from_mem_m_reg <= 0;
       y_reg <= 0;
       mdw_reg <= 0;
-      rdm_reg <= 0;
-      irm_reg <= 0;
+      // rdm_reg <= 0;
+      // irm_reg <= 0;
 
       //鐢ㄤ簬鍐呭瓨
       instm_st_w_reg <= 0;
@@ -292,14 +297,20 @@ module mycpu_top (
       res_from_mem_w_reg <= 0;
       mdr_reg <= 0;
       yw_reg <= 0;
-      rdw_reg <= 0;
-      irw_reg <= 0;
+      // rdw_reg <= 0;
+      // irw_reg <= 0;
     end else if(!stall_all) begin
       //IF1-IF2
       pcf2_reg <= flush_if1if2 ? 0 : stall_if1if2 ? pcf2_reg : pc;
       //IF-ID
       pcd_reg <= flush_ifid ? 0 : stall_ifid ? pcd_reg : pcf2_reg;
-      ir_reg <= flush_ifid ? 0 : stall_ifid ? ir_reg : inst;
+      //这里ir比较特别
+      //因为cache是在时钟上升沿工作的，所以有可能在stall的时候输出了结果，但是
+      //ir没有将其保存
+      //在stall的第一周期允许写入
+      stall_ifid_buf <= stall_ifid;
+      ir_reg1 <= flush_ifid ? 0 : (stall_ifid && stall_ifid_buf) ? ir_reg : inst;
+      ir_reg <= flush_ifid ? 0 : stall_ifid ? ir_reg : (stall_ifid_buf? ir_reg1 : inst);
       //ID-EX
       rf_ra0_ex <= flush_idex ? 0 : rf_raddr1;
       rf_ra1_ex <= flush_idex ? 0 : rf_raddr2;
@@ -307,8 +318,8 @@ module mycpu_top (
       a_reg <= flush_idex ? 0 : rf_rdata1;
       b_reg <= flush_idex ? 0 : rf_rdata2;
       imm_reg <= flush_idex ? 0 : imm;
-      rd_reg <= flush_idex ? 0 : rd;
-      ire_reg <= flush_idex ? 0 : ir_reg;
+      // rd_reg <= flush_idex ? 0 : rd;
+      // ire_reg <= flush_idex ? 0 : ir_reg;
       alu_op_reg <= flush_idex ? 0 : alu_op;
       src1_is_pc_reg <= flush_idex ? 0 : src1_is_pc;
       src2_is_imm_reg <= flush_idex ? 0 : src2_is_imm;
@@ -347,8 +358,8 @@ module mycpu_top (
       res_from_mem_m_reg <= res_from_mem_e_reg;
       y_reg <= alu_result;
       mdw_reg <= rkd_value;
-      rdm_reg <= rd_reg;
-      irm_reg <= ire_reg;
+      // rdm_reg <= rd_reg;
+      // irm_reg <= ire_reg;
 
       //鐢ㄤ簬鍐呭瓨
       instm_st_w_reg <= inste_st_w_reg;
@@ -368,8 +379,8 @@ module mycpu_top (
       res_from_mem_w_reg <= res_from_mem;
       mdr_reg <= mem_result;
       yw_reg <= y_reg;
-      rdw_reg <= rdm_reg;
-      irw_reg <= irm_reg;
+      // rdw_reg <= rdm_reg;
+      // irw_reg <= irm_reg;
     end
   end
 
@@ -387,7 +398,7 @@ module mycpu_top (
   end
 
   assign inst_sram_we    = 1'b0;
-  assign inst_sram_re    = 1'b1;
+  assign inst_sram_re    = valid;
   assign inst_sram_addr  = pc;
   assign inst_sram_wdata = 32'b0;
 
@@ -506,7 +517,7 @@ module mycpu_top (
   assign br_offs = need_si26 ? {{4{i26[25]}}, i26[25:0], 2'b0} : {{14{i16[15]}}, i16[15:0], 2'b0};
 
   assign src_reg_is_rd = inst_beq | inst_bne |inst_blt|inst_bltu|inst_bge|inst_bgeu| inst_st_w|inst_st_b|inst_st_h;//鐗规畩鎯呭喌锛宺d浣滀负璇诲彇鐨勬簮
-  assign rf_we         = (~inst_st_w&~inst_st_b&~inst_st_h& ~inst_beq & ~inst_bne & ~inst_b&~inst_blt&~inst_bltu&~inst_bge&~inst_bgeu) && valid;//鍦ㄨ繖浜涙儏鍐典笅锛屼笉鍚憆f鍐欏叆
+  assign rf_we         = (~inst_st_w&~inst_st_b&~inst_st_h& ~inst_beq & ~inst_bne & ~inst_b&~inst_blt&~inst_bltu&~inst_bge&~inst_bgeu) && valid && (pcd_reg!=0);//鍦ㄨ繖浜涙儏鍐典笅锛屼笉鍚憆f鍐欏叆
   assign rf_wa_ = dst_is_r1 ? 5'd1 : rd;
 
   assign rf_raddr1 = rj;
@@ -658,7 +669,9 @@ module mycpu_top (
       .flush_id_ex(flush_idex),
       .flush_if1_if2(flush_if1if2),
       .stall_if1_if2(stall_if1if2),
-      .stall_all(stall_all)
+      .stall_all(stall_all),
+      .inst_sram_miss(inst_sram_miss),
+      .inst_sram_rstn(inst_sram_rstn)
   );
 endmodule
 //TODO: 靠?

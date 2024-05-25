@@ -6,6 +6,7 @@ module hazard(
     input wire [4:0]rf_ra1_id,
     input wire npc_sel_ex,
     input wire inst_sram_miss,
+    output reg inst_sram_rstn,
     output reg stall_pc,
     output reg stall_if1_if2,
     output reg stall_if_id,
@@ -22,6 +23,7 @@ always @(*)begin
     flush_if_id=1'b0;
     flush_id_ex=1'b0;
     stall_all=1'b0;
+    inst_sram_rstn=1'b1;
     if(memread_ex && rf_we_ex && (rf_wa_ex==rf_ra0_id || rf_wa_ex==rf_ra1_id) && (rf_wa_ex!=5'd0))begin//mem读写冲突
         stall_pc=1'b1;
         stall_if_id=1'b1;
@@ -32,10 +34,13 @@ always @(*)begin
         flush_id_ex=1'b1;
         flush_if_id=1'b1;
         flush_if1_if2=1'b1;
+        inst_sram_rstn=1'b0;
     end
-    if(inst_sram_miss)begin
-        stall_all=1'b1;
-        // stall_if1_if2=1'b1;
+    else if(inst_sram_miss)begin
+        // stall_all=1'b1;
+        stall_pc=1'b1;
+        stall_if1_if2=1'b1;
+        flush_if_id=1'b1;
         // flush_if_id=stall_if_id?1'b0:1'b1;
     end
 end
